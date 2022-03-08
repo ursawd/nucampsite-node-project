@@ -2,6 +2,7 @@ const express = require("express");
 const { rethrow } = require("jade/lib/runtime");
 const Promotion = require("../models/promotion");
 const promotionRouter = express.Router();
+const authenticate = require("../authenticate");
 
 promotionRouter
 	.route("/:promotionId")
@@ -17,13 +18,13 @@ promotionRouter
 			})
 			.catch(err => next(err));
 	})
-	.post((req, res) => {
+	.post(authenticate.verifyUser, (req, res) => {
 		res.statusCode = 403;
 		res.end(
 			`POST operation not supported on /promotions/${req.params.promotionId}`
 		);
 	})
-	.put((req, res, next) => {
+	.put(authenticate.verifyUser, (req, res, next) => {
 		Promotion.findByIdAndUpdate(
 			req.params.promotionId,
 			{
@@ -36,7 +37,7 @@ promotionRouter
 			})
 			.catch(err => next(err));
 	})
-	.delete((req, res, next) => {
+	.delete(authenticate.verifyUser, (req, res, next) => {
 		Promotion.findByIdAndDelete(req.params.promotionId)
 			.then(response => {
 				res.json(response);
@@ -59,18 +60,18 @@ promotionRouter
 			})
 			.catch(err => next(err));
 	})
-	.post((req, res, next) => {
+	.post(authenticate.verifyUser, (req, res, next) => {
 		Promotion.create(req.body)
 			.then(promotion => {
 				res.json(promotion);
 			})
 			.catch(err => next(err));
 	})
-	.put((req, res) => {
+	.put(authenticate.verifyUser, (req, res) => {
 		res.statusCode = 403;
 		res.end("PUT operation not supported on /promotions");
 	})
-	.delete((req, res, next) => {
+	.delete(authenticate.verifyUser, (req, res, next) => {
 		Promotion.deleteMany()
 			.then(response => {
 				res.json(response);
