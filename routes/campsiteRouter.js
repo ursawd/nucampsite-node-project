@@ -195,24 +195,35 @@ campsiteRouter
 			`POST operation not supported on /campsites/${req.params.campsiteId}/comments/${req.params.commentId}`
 		);
 	})
+	//!
 	.put(authenticate.verifyUser, (req, res, next) => {
 		Campsite.findById(req.params.campsiteId)
 			.then(campsite => {
 				if (campsite && campsite.comments.id(req.params.commentId)) {
-					if (req.body.rating) {
-						campsite.comments.id(req.params.commentId).rating = req.body.rating;
+					//if campsite w/ given id exists and comment with given id exists then
+					//check if id for user equals  author id on comment
+					const authorId = campsite.comments.id(req.params.commentId).author;
+					if (req.user._id.equals(authorId)) {
+						if (req.body.rating) {
+							campsite.comments.id(req.params.commentId).rating =
+								req.body.rating;
+						}
+						if (req.body.text) {
+							campsite.comments.id(req.params.commentId).text = req.body.text;
+						}
+						campsite
+							.save()
+							.then(campsite => {
+								res.statusCode = 200;
+								res.setHeader("Content-Type", "application/json");
+								res.json(campsite);
+							})
+							.catch(err => next(err));
+					} else {
+						err = new Error(`Only logged in user may only modify own comments`);
+						err.status = 403;
+						return next(err);
 					}
-					if (req.body.text) {
-						campsite.comments.id(req.params.commentId).text = req.body.text;
-					}
-					campsite
-						.save()
-						.then(campsite => {
-							res.statusCode = 200;
-							res.setHeader("Content-Type", "application/json");
-							res.json(campsite);
-						})
-						.catch(err => next(err));
 				} else if (!campsite) {
 					err = new Error(`Campsite ${req.params.campsiteId} not found`);
 					err.status = 404;
@@ -225,19 +236,29 @@ campsiteRouter
 			})
 			.catch(err => next(err));
 	})
+	//!
 	.delete(authenticate.verifyUser, (req, res, next) => {
 		Campsite.findById(req.params.campsiteId)
 			.then(campsite => {
 				if (campsite && campsite.comments.id(req.params.commentId)) {
-					campsite.comments.id(req.params.commentId).remove();
-					campsite
-						.save()
-						.then(campsite => {
-							res.statusCode = 200;
-							res.setHeader("Content-Type", "application/json");
-							res.json(campsite);
-						})
-						.catch(err => next(err));
+					//if campsite w/ given id exists and comment with given id exists then
+					//check if id for user equals  author id on comment
+					const authorId = campsite.comments.id(req.params.commentId).author;
+					if (req.user._id.equals(authorId)) {
+						campsite.comments.id(req.params.commentId).remove();
+						campsite
+							.save()
+							.then(campsite => {
+								res.statusCode = 200;
+								res.setHeader("Content-Type", "application/json");
+								res.json(campsite);
+							})
+							.catch(err => next(err));
+					} else {
+						err = new Error(`Only logged in user may only delete own comments`);
+						err.status = 403;
+						return next(err);
+					}
 				} else if (!campsite) {
 					err = new Error(`Campsite ${req.params.campsiteId} not found`);
 					err.status = 404;
